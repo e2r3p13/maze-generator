@@ -6,14 +6,14 @@
 /*   By: lfalkau <lfalkau@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/09 21:35:15 by lfalkau           #+#    #+#             */
-/*   Updated: 2021/07/10 07:10:03 by lfalkau          ###   ########.fr       */
+/*   Updated: 2021/07/10 17:25:35 by bccyv            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 use rand::seq::SliceRandom;
 use rand::{Rng, thread_rng};
 
-use image::{ImageBuffer, Rgb};
+// use image::{ImageBuffer, Rgb};
 
 struct Transition {
 	is_reachable: bool,
@@ -48,6 +48,40 @@ impl Cell {
 			top: Transition::new(false, if index / w > 0 {Some(index - w)} else {None}),
 			bottom: Transition::new(false, if index / w < h - 1 {Some(index + w)} else {None}),
 		}
+	}
+
+	fn top_left_wall(&self, maze: &Maze) -> char {
+
+		let left: bool;
+		let top: bool;
+		let top_left: bool;
+		let left_top: bool;
+
+		left = self.left.is_reachable;
+		top = self.top.is_reachable;
+		top_left = match self.top.destination {
+			Some(id) => {
+				maze.cells[id as usize].left.is_reachable
+			},
+			None => true,
+		};
+		left_top = match self.left.destination {
+			Some(id) => {
+				maze.cells[id as usize].top.is_reachable
+			},
+			None => true,
+		};
+		return if left && top_left { '━' }
+		else if top && left_top { '┃' }
+		else if left && top { '┛' }
+		else if top && top_left { '┓' }
+		else if left && left_top { '┗' }
+		else if top_left && left_top { '┏' }
+		else if left { '┻' }
+		else if top { '┫' }
+		else if left_top  { '┣' }
+		else if top_left { '┳' }
+		else { '╋' };
 	}
 
 }
@@ -94,7 +128,49 @@ impl Maze {
 		return maze;
 	}
 
-	pub fn print(&self, free_char: char, wall_char: char) {
+	pub fn print_linewise(&self) {
+
+		let mut lines: Vec<String> = Vec::new();
+
+		let mut line = String::new();
+
+		for i in 0..self.cells.len() {
+
+			let cell = &self.cells[i];
+
+			line.push(cell.top_left_wall(&self));
+			line.push(if cell.top.is_reachable {' '} else {'━'});
+
+			if  i > 0 && i as u32 % self.width == self.width - 1 {
+				line.push( if i as u32 / self.width == 0 { '┓' } else if line.chars().last() == Some('━') {'┫'} else { '┃' });
+				lines.push(line);
+				line = String::new();
+			}
+
+		}
+
+		line = String::from("┗━");
+		for i in 1 .. self.width {
+			if let Some(id) = self.cells[((self.height - 2) * self.width + i) as usize].bottom.destination {
+				if self.cells[id as usize].left.is_reachable {
+					line.push('━');
+				} else {
+					line.push('┻');
+				}
+			}
+			// line.push(if self.cells[((self.height - 1) * self.width + i) as usize].bottom.destination { '━' } else { '┻' });
+			line.push('━');
+		}
+		line.push('┛');
+		lines.push(line);
+
+		for line in lines.iter() {
+			println!("{}", line);
+		}
+
+	}
+
+	pub fn print_blockwise(&self, free_char: char, wall_char: char) {
 
 		let mut tmp: Vec<char> = Vec::new();
 
@@ -126,23 +202,23 @@ impl Maze {
 		}
 	}
 
-	pub fn export(&self, filename: &str, ppc: u32, linewidth: u32) {
-
-		if ppc < 5 || linewidth >= ppc / 2 {
-			println!("Error: Resolution too low");
-			return ;
-		}
-		let w = self.width * ppc;
-		let h = self.height * ppc;
-
-		let mut image = ImageBuffer::<Rgb<u8>, Vec<u8> >::new(w, h);
-
-		for cell in &self.cells {
-			// TODO
-		}
-
-		image.save(filename).unwrap();
-	}
+	// TODO
+	// pub fn export(&self, filename: &str, ppc: u32, linewidth: u32) {
+	//
+	// 	if ppc < 5 || linewidth >= ppc / 2 {
+	// 		println!("Error: Resolution too low");
+	// 		return ;
+	// 	}
+	// 	let w = self.width * ppc;
+	// 	let h = self.height * ppc;
+	//
+	// 	let mut image = ImageBuffer::<Rgb<u8>, Vec<u8> >::new(w, h);
+	//
+	// 	for cell in &self.cells {
+	// 	}
+	//
+	// 	image.save(filename).unwrap();
+	// }
 
 }
 
