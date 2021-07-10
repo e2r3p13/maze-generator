@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.rs                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: lfalkau <lfalkau@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2021/07/09 23:06:40 by lfalkau           #+#    #+#             */
+/*   Updated: 2021/07/10 06:19:32 by lfalkau          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 // use std::env;
 
 // fn main() {
@@ -32,12 +44,10 @@ mod maze;
 use maze::Maze;
 
 fn main() {
-	let width = 32;
-	let height = 32;
-	let walls_char = '1';
-	let blank_char = '0';
+	let width = 64;
+	let height = 64;
 
-	let maze = Maze::generate(height, width, walls_char, blank_char);
+	let maze = Maze::generate(height, width);
 
-	maze.print();
+	maze.print(' ', '█');
 }
