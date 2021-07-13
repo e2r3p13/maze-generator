@@ -6,68 +6,58 @@
 /*   By: lfalkau <lfalkau@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/07/09 21:35:15 by lfalkau           #+#    #+#             */
-/*   Updated: 2021/07/10 17:25:35 by bccyv            ###   ########.fr       */
+/*   Updated: 2021/07/12 19:32:09 by bccyv            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 use rand::seq::SliceRandom;
 use rand::{Rng, thread_rng};
 
-// use image::{ImageBuffer, Rgb};
-
-struct Transition {
-	is_reachable: bool,
-	destination: Option<u32>,
-}
-
-impl Transition {
-
-	fn new(is_reachable: bool, destination: Option<u32>) -> Transition {
-		Transition {
-			is_reachable,
-			destination,
-		}
-	}
-
+pub struct Maze {
+	height: u32,
+	width: u32,
+	cells: Vec<Cell>,
 }
 
 struct Cell {
-	left: Transition,
-	right: Transition,
-	top: Transition,
-	bottom: Transition,
+	left: Link,
+	right: Link,
+	top: Link,
+	bottom: Link,
+}
+
+struct Link {
+	is_connected: bool,
+	destination: Option<u32>,
 }
 
 impl Cell {
-
 	fn new(index: u32, w: u32, h: u32) -> Cell {
-
 		Cell {
-			left: Transition::new(false, if index % w > 0 {Some(index - 1)} else {None}),
-			right: Transition::new(false, if index % w < w - 1 {Some(index + 1)} else {None}),
-			top: Transition::new(false, if index / w > 0 {Some(index - w)} else {None}),
-			bottom: Transition::new(false, if index / w < h - 1 {Some(index + w)} else {None}),
+			left: Link::new(false, if index % w > 0 {Some(index - 1)} else {None}),
+			right: Link::new(false, if index % w < w - 1 {Some(index + 1)} else {None}),
+			top: Link::new(false, if index / w > 0 {Some(index - w)} else {None}),
+			bottom: Link::new(false, if index / w < h - 1 {Some(index + w)} else {None}),
 		}
 	}
 
 	fn top_left_wall(&self, maze: &Maze) -> char {
-
 		let left: bool;
 		let top: bool;
 		let top_left: bool;
 		let left_top: bool;
 
-		left = self.left.is_reachable;
-		top = self.top.is_reachable;
+		left = self.left.is_connected;
+		top = self.top.is_connected;
 		top_left = match self.top.destination {
 			Some(id) => {
-				maze.cells[id as usize].left.is_reachable
+				maze.cells[id as usize].left.is_connected
 			},
 			None => true,
 		};
 		left_top = match self.left.destination {
 			Some(id) => {
-				maze.cells[id as usize].top.is_reachable
+				maze.cells[id as usize].top.is_connected
 			},
 			None => true,
 		};
@@ -86,16 +76,16 @@ impl Cell {
 
 }
 
-pub struct Maze {
-	height: u32,
-	width: u32,
-	cells: Vec<Cell>,
+impl Link {
+	fn new(is_connected: bool, destination: Option<u32>) -> Link {
+		Link {
+			is_connected,
+			destination,
+		}
+	}
 }
 
 impl Maze {
-
-	// Creates a fully closed maze
-	// (each is_reachable transition's attribute of each cell are set to false).
 	fn new(h: u32, w: u32) -> Maze {
 		let mut maze = Maze {
 			height: h,
@@ -109,7 +99,6 @@ impl Maze {
 		}
 		maze
 	}
-
 }
 
 impl Maze {
@@ -139,7 +128,7 @@ impl Maze {
 			let cell = &self.cells[i];
 
 			line.push(cell.top_left_wall(&self));
-			line.push(if cell.top.is_reachable {' '} else {'━'});
+			line.push(if cell.top.is_connected {' '} else {'━'});
 
 			if  i > 0 && i as u32 % self.width == self.width - 1 {
 				line.push( if i as u32 / self.width == 0 { '┓' } else if line.chars().last() == Some('━') {'┫'} else { '┃' });
@@ -152,7 +141,7 @@ impl Maze {
 		line = String::from("┗━");
 		for i in 1 .. self.width {
 			if let Some(id) = self.cells[((self.height - 2) * self.width + i) as usize].bottom.destination {
-				if self.cells[id as usize].left.is_reachable {
+				if self.cells[id as usize].left.is_connected {
 					line.push('━');
 				} else {
 					line.push('┻');
@@ -176,8 +165,8 @@ impl Maze {
 
 		for cell in &self.cells {
 			tmp.push(free_char);
-			tmp.push(if cell.right.is_reachable {free_char} else {wall_char});
-			tmp.push(if cell.bottom.is_reachable {free_char} else {wall_char});
+			tmp.push(if cell.right.is_connected {free_char} else {wall_char});
+			tmp.push(if cell.bottom.is_connected {free_char} else {wall_char});
 			tmp.push(wall_char);
 		}
 
@@ -232,20 +221,20 @@ fn carve_passage(maze: &mut Maze, visited: &mut Vec<bool>, cell_id: usize) {
 	directions.shuffle(&mut rng);
 
 	for direction in directions.iter() {
-		let transition: &mut Transition = match direction {
+		let Link: &mut Link = match direction {
 			0 => { &mut maze.cells[cell_id].top },
 			1 => { &mut maze.cells[cell_id].right },
 			2 => { &mut maze.cells[cell_id].bottom },
 			_ => { &mut maze.cells[cell_id].left },
 		};
-		if let Some(id) = transition.destination {
+		if let Some(id) = Link.destination {
 			if visited[id as usize] == false {
-				transition.is_reachable = true;
+				Link.is_connected = true;
 				match direction {
-					0 => {maze.cells[id as usize].bottom.is_reachable = true},
-					1 => {maze.cells[id as usize].left.is_reachable = true},
-					2 => {maze.cells[id as usize].top.is_reachable = true},
-					_ => {maze.cells[id as usize].right.is_reachable = true},
+					0 => {maze.cells[id as usize].bottom.is_connected = true},
+					1 => {maze.cells[id as usize].left.is_connected = true},
+					2 => {maze.cells[id as usize].top.is_connected = true},
+					_ => {maze.cells[id as usize].right.is_connected = true},
 				}
 				carve_passage(maze, visited, id as usize);
 			}
