@@ -6,10 +6,10 @@ This crate provide functions to generate mazes with several algorithms, in an ef
 
 ## Public API
 ```Rust
-pub fn generate(w: usize, h: usize, generator: Generator) -> Maze
-pub fn print_linewise(&self)
-pub fn print_blockwise(&self, free_char: char, wall_char: char)
-pub fn export(&self, filename: &str, w: u32, h: u32, walls_width: u32)
+pub fn generate(w: usize, h: usize, generator: Generator) -> Maze;
+pub fn print_linewise(&self);
+pub fn print_blockwise(&self, free_char: char, wall_char: char);
+pub fn export(&self, filename: &str, w: u32, h: u32, walls_width: u32);
 ```
 
 ## Compilation & Installation
